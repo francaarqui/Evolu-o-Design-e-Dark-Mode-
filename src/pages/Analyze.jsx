@@ -26,13 +26,13 @@ export default function Analyze() {
 
     useEffect(() => {
         if (user?.plan === 'FREE') {
-            const storedCount = localStorage.getItem(`shieldcheck_count_${user.id}`);
-            const storedDate = localStorage.getItem(`shieldcheck_date_${user.id}`);
+            const storedCount = localStorage.getItem(`shieldcheck_count_$\{user.id}`);
+            const storedDate = localStorage.getItem(`shieldcheck_date_$\{user.id}`);
             const today = new Date().toDateString();
             if (storedDate === today && storedCount) setAnalysisCount(parseInt(storedCount, 10));
             else {
-                localStorage.setItem(`shieldcheck_date_${user.id}`, today);
-                localStorage.setItem(`shieldcheck_count_${user.id}`, '0');
+                localStorage.setItem(`shieldcheck_date_$\{user.id}`, today);
+                localStorage.setItem(`shieldcheck_count_$\{user.id}`, '0');
                 setAnalysisCount(0);
             }
         }
@@ -52,7 +52,7 @@ export default function Analyze() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.token}`
+                    'Authorization': `Bearer $\{user.token}`
                 },
                 body: JSON.stringify({ content: cleanText, type: extractedSource ? 'media' : 'text' }),
             });
@@ -68,7 +68,7 @@ export default function Analyze() {
             if (user?.plan === 'FREE') {
                 const newCount = analysisCount + 1;
                 setAnalysisCount(newCount);
-                localStorage.setItem(`shieldcheck_count_${user.id}`, newCount.toString());
+                localStorage.setItem(`shieldcheck_count_$\{user.id}`, newCount.toString());
             }
         } catch (err) {
             setError('Instabilidade no motor de IA. Tente novamente em alguns segundos.');
@@ -84,7 +84,7 @@ export default function Analyze() {
         setProcessingStatus('Reconhecendo Padrões Visuais...');
         try {
             const { data: { text } } = await Tesseract.recognize(file, 'por+eng', { logger: m => m.status === 'recognizing text' && setOcrProgress(Math.round(m.progress * 100)) });
-            const cleanedText = text.replace(/\n\s*\n/g, '\n').trim();
+            const cleanedText = text.replace(/\\n\\s*\\n/g, '\\n').trim();
             if (!cleanedText) throw new Error('Nenhum texto detectado.');
             setContent(cleanedText);
             setExtractedSource('Imagem');
@@ -107,7 +107,7 @@ export default function Analyze() {
 
             const res = await fetch(API_ENDPOINTS.ANALYZE_MEDIA, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${user.token}` },
+                headers: { 'Authorization': `Bearer $\{user.token}` },
                 body: formData
             });
             if (res.status === 429) {
@@ -120,7 +120,7 @@ export default function Analyze() {
             setExtractedSource(type === 'audio' ? 'Áudio' : 'Vídeo');
             setResult(data);
         } catch (err) {
-            setError(`Erro ao transcrever arquivo de ${type}.`);
+            setError(`Erro ao transcrever arquivo de $\{type}.`);
         } finally {
             setIsProcessingMedia(false);
         }
@@ -130,33 +130,29 @@ export default function Analyze() {
         if (!result) return;
         const doc = new jsPDF();
 
-        // Branded Header
-        doc.setFillColor(15, 23, 42); // slate-900
+        doc.setFillColor(15, 23, 42); 
         doc.rect(0, 0, 210, 40, 'F');
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(22);
         doc.text('SHIELDCHECK AI - RELATÓRIO DE SEGURANÇA', 20, 25);
 
-        // Status Bar
         const statusColor = result.score > 60 ? [220, 38, 38] : result.score > 30 ? [245, 158, 11] : [16, 185, 129];
         doc.setFillColor(...statusColor);
         doc.rect(20, 50, 170, 15, 'F');
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(12);
-        doc.text(`VEREDITO: ${result.status.toUpperCase()} | ÍNDICE DE RISCO: ${result.score}%`, 30, 60);
+        doc.text(`VEREDITO: $\{result.status.toUpperCase()} | ÍNDICE DE RISCO: $\{result.score}%`, 30, 60);
 
-        // Body
-        doc.setTextColor(30, 41, 59); // slate-800
+        doc.setTextColor(30, 41, 59); 
         doc.setFontSize(14);
         doc.text('Sumário da Análise:', 20, 85);
         doc.setFontSize(10);
         const splitSummary = doc.splitTextToSize(result.summary || '', 170);
         doc.text(splitSummary, 20, 95);
 
-        // Recommendation
-        doc.setFillColor(248, 250, 252); // slate-50
+        doc.setFillColor(248, 250, 252); 
         doc.rect(20, 130, 170, 30, 'F');
-        doc.setTextColor(79, 70, 229); // indigo-600
+        doc.setTextColor(79, 70, 229); 
         doc.setFontSize(12);
         doc.text('Protocolo de Segurança Recomendado:', 25, 140);
         doc.setTextColor(30, 41, 59);
@@ -164,12 +160,11 @@ export default function Analyze() {
         const splitRec = doc.splitTextToSize(result.recommendation || '', 160);
         doc.text(splitRec, 25, 150);
 
-        // Footer
         doc.setFontSize(8);
         doc.setTextColor(148, 163, 184);
-        doc.text(`Gerado em: ${new Date().toLocaleString()} | shieldcheckai.com`, 20, 280);
+        doc.text(`Gerado em: $\{new Date().toLocaleString()} | shieldcheckai.com`, 20, 280);
 
-        doc.save(`ShieldCheck_Relatorio_${Date.now()}.pdf`);
+        doc.save(`ShieldCheck_Relatorio_$\{Date.now()}.pdf`);
     };
 
     return (
@@ -184,7 +179,6 @@ export default function Analyze() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                {/* Input Section */}
                 <div className="lg:col-span-12 space-y-6">
                     <div className="glass-card p-8 rounded-[2.5rem] border border-white dark:border-slate-800 shadow-xl relative overflow-hidden transition-all duration-300">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
@@ -197,7 +191,7 @@ export default function Analyze() {
 
                             {extractedSource && (
                                 <div className="flex justify-between items-center px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">
-                                    <span>Fonte Detectada: {extractedSource}</span>
+                                    <span>Fonte Detectada: $\{extractedSource}</span>
                                     <button onClick={() => { setContent(''); setExtractedSource(null); setResult(null); }} className="text-indigo-300 hover:text-white underline">Descartar</button>
                                 </div>
                             )}
@@ -247,7 +241,7 @@ export default function Analyze() {
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Limite Diário Grátis:</p>
                                     <div className="flex gap-1.5">
                                         {[...Array(MAX_FREE_ANALYSES)].map((_, i) => (
-                                            <div key={i} className={`w-3 h-3 rounded-full ${i < analysisCount ? 'bg-indigo-200' : 'bg-indigo-500 animate-pulse'}`}></div>
+                                            <div key={i} className={`w-3 h-3 rounded-full $\{i < analysisCount ? 'bg-indigo-200' : 'bg-indigo-500 animate-pulse'}`}></div>
                                         ))}
                                     </div>
                                 </div>
@@ -257,7 +251,7 @@ export default function Analyze() {
                 </div>
 
                 {/* Analysis Results */}
-                {analyzing ? (
+                {isLoading ? (
                     <div className="lg:col-span-12">
                         <div className="glass-card p-20 rounded-[3rem] border border-indigo-100 dark:border-indigo-900/30 flex flex-col items-center justify-center space-y-8 relative overflow-hidden">
                             <div className="absolute inset-0 bg-mesh opacity-20"></div>
@@ -272,26 +266,25 @@ export default function Analyze() {
 
                             <div className="text-center space-y-2 relative z-10">
                                 <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Motor Heurístico Ativo</h3>
-                                <p className="text-slate-500 dark:text-slate-400 font-bold animate-pulse">Decompondo padrões de engenharia social...</p>
+                                <p className="text-slate-500 dark:text-slate-400 font-bold animate-pulse">Decomponendo padrões de engenharia social...</p>
                             </div>
                         </div>
                     </div>
                 ) : result && (
                     <div className="lg:col-span-12 animate-slide-up">
                         <div className="glass-card rounded-[3rem] border border-white dark:border-slate-800 shadow-2xl overflow-hidden relative">
-                            <div className={`h-4 w-full ${result.score > 60 ? 'bg-red-500' : result.score > 30 ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
+                            <div className={`h-4 w-full $\{result.score > 60 ? 'bg-red-500' : result.score > 30 ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
 
                             <div className="p-10 flex flex-col lg:flex-row gap-12">
-                                {/* Risk Gauge */}
                                 <div className="flex flex-col items-center justify-center space-y-4">
                                     <div className={`w-48 h-48 rounded-[2.5rem] flex flex-col items-center justify-center border-4 shadow-2xl relative transition-all duration-500 transform hover:scale-105
-                                        ${result.score > 60 ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 shadow-red-100 dark:shadow-none' :
+                                        $\{result.score > 60 ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 shadow-red-100 dark:shadow-none' :
                                             result.score > 30 ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/30 text-amber-600 dark:text-amber-400 shadow-amber-100 dark:shadow-none' :
                                                 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/30 text-emerald-600 dark:text-emerald-400 shadow-emerald-100 dark:shadow-none'}
                                     `}>
                                         <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Risk Score</p>
-                                        <p className="text-8xl font-display font-black leading-none">{result.score}</p>
-                                        <p className="text-xs font-bold mt-2">{result.status}</p>
+                                        <p className="text-8xl font-display font-black leading-none">$\{result.score}</p>
+                                        <p className="text-xs font-bold mt-2">$\{result.status}</p>
                                     </div>
 
                                     {user?.plan === 'PREMIUM' && (
@@ -305,15 +298,14 @@ export default function Analyze() {
                                     )}
                                 </div>
 
-                                {/* Details */}
                                 <div className="flex-1 space-y-10">
                                     <div className="space-y-4">
                                         <h4 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Sinais Detectados</h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                             {result.signals.map((signal, idx) => (
                                                 <div key={idx} className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                                                    <div className={`w-2 h-2 rounded-full ${result.score > 60 ? 'bg-red-500' : 'bg-amber-500'}`}></div>
-                                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{signal}</p>
+                                                    <div className={`w-2 h-2 rounded-full $\{result.score > 60 ? 'bg-red-500' : 'bg-amber-500'}`}></div>
+                                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">$\{signal}</p>
                                                 </div>
                                             ))}
                                         </div>
@@ -324,7 +316,7 @@ export default function Analyze() {
                                             <svg className="w-20 h-20 text-indigo-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-1-5h2v2h-2v-2zm0-8h2v6h-2V7z" /></svg>
                                         </div>
                                         <h4 className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-3">Recomendação Especialista</h4>
-                                        <p className="text-slate-800 dark:text-slate-200 font-bold text-lg leading-relaxed relative z-10">{result.recommendation}</p>
+                                        <p className="text-slate-800 dark:text-slate-200 font-bold text-lg leading-relaxed relative z-10">$\{result.recommendation}</p>
                                     </div>
                                 </div>
                             </div>
@@ -340,7 +332,6 @@ export default function Analyze() {
                 </div>
             )}
 
-            {/* Modal Premium */}
             {showPremiumModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
                     <div className="bg-white rounded-[2.5rem] max-w-lg w-full p-8 md:p-10 shadow-2xl relative overflow-hidden animate-slide-up">
@@ -396,3 +387,4 @@ export default function Analyze() {
         </div>
     );
 }
+
