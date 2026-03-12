@@ -43,63 +43,67 @@ export default function Register() {
     };
 
     return (
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 p-8 animate-fadeInUp">
-            <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-slate-900">Crie sua conta</h2>
-                <p className="text-slate-500 mt-2 text-sm">Comece a usar o ShieldCheck gratuitamente</p>
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 p-10 animate-fadeInUp">
+            <div className="text-center mb-10">
+                <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-200 rotate-12">
+                    <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor font-bold"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                </div>
+                <h2 className="text-3xl font-display font-black text-slate-900 dark:text-white tracking-tight">Crie sua conta</h2>
+                <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Comece sua blindagem gratuita agora</p>
             </div>
 
-            <form onSubmit={handleRegister} className="space-y-5">
+            <form onSubmit={handleRegister} className="space-y-6">
                 {error && (
-                    <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-medium border border-red-100">
+                    <div className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 p-4 rounded-2xl text-sm font-bold border border-red-100 dark:border-red-900/30 flex items-center gap-3">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         {error}
                     </div>
                 )}
 
-                <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Nome Completo</label>
+                <div className="space-y-2">
+                    <label className="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome Completo</label>
                     <input
                         type="text"
                         value={name}
                         onChange={e => setName(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800"
-                        placeholder="João da Silva"
+                        className="w-full px-6 py-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all text-slate-800 dark:text-slate-100 font-bold"
+                        placeholder="Seu Nome"
                         required
                     />
                 </div>
 
-                <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">E-mail</label>
+                <div className="space-y-2">
+                    <label className="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">E-mail</label>
                     <input
                         type="email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800"
-                        placeholder="seuemail@exemplo.com"
+                        className="w-full px-6 py-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all text-slate-800 dark:text-slate-100 font-bold"
+                        placeholder="seu@email.com"
                         required
                     />
                 </div>
 
-                <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Senha</label>
+                <div className="space-y-2">
+                    <label className="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Senha</label>
                     <input
                         type="password"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800"
+                        className="w-full px-6 py-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all text-slate-800 dark:text-slate-100 font-bold"
                         placeholder="••••••••"
                         required
                         minLength={6}
                     />
                 </div>
 
-                <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Confirmar Senha</label>
+                <div className="space-y-2">
+                    <label className="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Confirmar Senha</label>
                     <input
                         type="password"
                         value={confirmPassword}
                         onChange={e => setConfirmPassword(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800"
+                        className="w-full px-6 py-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all text-slate-800 dark:text-slate-100 font-bold"
                         placeholder="••••••••"
                         required
                     />
@@ -108,14 +112,16 @@ export default function Register() {
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 mt-2 rounded-xl shadow-md transition-transform transform hover:-translate-y-0.5 flex justify-center items-center"
+                    className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black py-4 rounded-2xl shadow-xl shadow-indigo-100 dark:shadow-none hover:opacity-90 transition-all flex justify-center items-center text-lg mt-4"
                 >
-                    {isLoading ? 'Criando conta...' : 'Cadastrar agora'}
+                    {isLoading ? (
+                        <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : 'Criar Minha Conta'}
                 </button>
             </form>
 
-            <div className="mt-6 text-center text-sm text-slate-500 border-t border-slate-100 pt-6">
-                Já possui conta? <Link to="/login" className="font-bold text-indigo-600 hover:text-indigo-700">Fazer login</Link>
+            <div className="mt-10 text-center text-sm font-bold text-slate-500 dark:text-slate-400 pt-8 border-t border-slate-50 dark:border-slate-800">
+                Já possui conta? <Link to="/login" className="text-indigo-600 hover:underline">Fazer login</Link>
             </div>
         </div>
     );
