@@ -1,16 +1,21 @@
+// CÓDIGO PARA O ARQUIVO: frontend/src/pages/StoreChecker.jsx
 import React, { useState, useContext } from 'react';
+import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { API_ENDPOINTS } from '../api/config';
 import { jsPDF } from 'jspdf';
 
 export default function StoreChecker() {
     const { user } = useContext(AuthContext);
-    const [activeTab, setActiveTab] = useState('store'); // 'store' or 'cnpj'
+    const [activeTab, setActiveTab] = useState('store'); // 'store', 'cnpj', 'pix', 'phone', 'link'
     const [url, setUrl] = useState('');
     const [cnpj, setCnpj] = useState('');
+    const [pix, setPix] = useState('');
+    const [phone, setPhone] = useState('');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [cnpjResult, setCnpjResult] = useState(null);
+    const [genericResult, setGenericResult] = useState(null);
     const [error, setError] = useState(null);
     const [showPremiumModal, setShowPremiumModal] = useState(false);
 
@@ -51,7 +56,6 @@ export default function StoreChecker() {
         setError(null);
 
         try {
-            // Using BrasilAPI for real data
             const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`);
             if (!res.ok) throw new Error('Empresa não encontrada ou erro na base de dados.');
 
@@ -59,6 +63,65 @@ export default function StoreChecker() {
             setCnpjResult(data);
         } catch (err) {
             setError(err.message || 'Erro ao consultar CNPJ.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const checkItem = async (e, value, type) => {
+        e.preventDefault();
+        if (!value) return;
+
+        setLoading(true);
+        setGenericResult(null);
+        setError(null);
+
+        try {
+            const res = await fetch(`${API_ENDPOINTS.CHECK_ITEM}?value=${encodeURIComponent(value)}&type=${type}`, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            if (res.status === 429) {
+                setShowPremiumModal(true);
+                throw new Error('Cota diária atingida.');
+            }
+            if (!res.ok) throw new Error();
+
+            const data = await res.json();
+            setGenericResult(data);
+        } catch (err) {
+            setError('Falha na consulta de segurança.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const expandUrl = async (e) => {
+        e.preventDefault();
+        if (!url) return;
+
+        setLoading(true);
+        setResult(null);
+        setError(null);
+
+        try {
+            const res = await fetch(`${API_ENDPOINTS.EXPAND_URL}?url=${encodeURIComponent(url)}`, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            if (res.status === 429) {
+                setShowPremiumModal(true);
+                throw new Error('Cota diária atingida.');
+            }
+            if (!res.ok) throw new Error();
+
+            const data = await res.json();
+            setResult({
+                ...data.analysis,
+                domain: data.expandedUrl,
+                recommendation: `O link redireciona para: ${data.expandedUrl}. ${data.analysis.recommendation}`,
+                isExpanded: true
+            });
+        } catch (err) {
+            setError('Não foi possível processar este link.');
         } finally {
             setLoading(false);
         }
@@ -143,7 +206,6 @@ export default function StoreChecker() {
                 </div>
             </div>
 
-            {/* Selection Tabs */}
             <div className="flex justify-center md:justify-start">
                 <div className="bg-slate-200/50 dark:bg-slate-800/50 p-1.5 rounded-2xl flex gap-1 border border-white dark:border-slate-800 backdrop-blur-md">
                     <button
@@ -154,11 +216,32 @@ export default function StoreChecker() {
                         Lojas e Sites
                     </button>
                     <button
-                        onClick={() => { setActiveTab('cnpj'); setError(null); }}
+                        onClick={() => { setActiveTab('cnpj'); setError(null); setCnpjResult(null); }}
                         className={`px-8 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${activeTab === 'cnpj' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
                     >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                        Consultar CNPJ
+                        CNPJ
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab('pix'); setError(null); setGenericResult(null); }}
+                        className={`px-8 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${activeTab === 'pix' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+                    >
+                        <span className="text-lg">💎</span>
+                        Chave PIX
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab('phone'); setError(null); setGenericResult(null); }}
+                        className={`px-8 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${activeTab === 'phone' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+                    >
+                        <span className="text-lg">📞</span>
+                        Telefone
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab('link'); setError(null); }}
+                        className={`px-8 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${activeTab === 'link' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+                    >
+                        <span className="text-lg">🔗</span>
+                        Expandir Link
                     </button>
                 </div>
             </div>
@@ -171,7 +254,6 @@ export default function StoreChecker() {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
-                {/* Input Area */}
                 <div className="md:col-span-2">
                     <div className="glass-card p-10 rounded-[3rem] border border-white dark:border-slate-800 shadow-2xl relative overflow-hidden transition-all duration-300">
                         {loading && (
@@ -185,26 +267,28 @@ export default function StoreChecker() {
                             <div className="space-y-8">
                                 <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-3">
                                     <div className="w-2 h-6 bg-indigo-600 rounded-full"></div>
-                                    Análise de Domínio
+                                    Análise de Domínio e Links
                                 </h3>
                                 <div className="flex flex-col lg:flex-row gap-4">
                                     <input
                                         type="url"
                                         value={url}
                                         onChange={(e) => setUrl(e.target.value)}
-                                        placeholder="ex: www.loja-suspeita.com.br"
+                                        placeholder="URL da loja ou Link encurtado"
                                         className="flex-1 h-20 px-8 bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-3xl focus:ring-8 focus:ring-indigo-100 dark:focus:ring-indigo-900/20 focus:border-indigo-500 outline-none transition-all text-slate-800 dark:text-slate-100 font-bold text-xl placeholder:text-slate-300"
                                     />
-                                    <button
-                                        onClick={checkStore}
-                                        disabled={loading || !url}
-                                        className="lg:w-72 h-20 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-3xl hover:opacity-90 transition-all shadow-2xl shadow-indigo-200 dark:shadow-none disabled:opacity-50 text-xl"
-                                    >
-                                        Auditar Site
-                                    </button>
+                                    <div className="flex flex-col sm:flex-row gap-4">
+                                        <button
+                                            onClick={checkStore}
+                                            disabled={loading || !url}
+                                            className="lg:w-72 h-20 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-3xl hover:opacity-90 transition-all shadow-xl disabled:opacity-50 text-xl"
+                                        >
+                                            Auditar Site
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        ) : (
+                        ) : activeTab === 'cnpj' ? (
                             <div className="space-y-8">
                                 <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-3">
                                     <div className="w-2 h-6 bg-purple-600 rounded-full"></div>
@@ -227,11 +311,79 @@ export default function StoreChecker() {
                                     </button>
                                 </div>
                             </div>
+                        ) : activeTab === 'pix' ? (
+                            <div className="space-y-8">
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-3">
+                                    <div className="w-2 h-6 bg-emerald-500 rounded-full"></div>
+                                    Verificador de Chave PIX
+                                </h3>
+                                <div className="flex flex-col lg:flex-row gap-4">
+                                    <input
+                                        type="text"
+                                        value={pix}
+                                        onChange={(e) => setPix(e.target.value)}
+                                        placeholder="CPF, E-mail, Telefone ou Chave Aleatória"
+                                        className="flex-1 h-20 px-8 bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-3xl focus:ring-8 focus:ring-emerald-100 dark:focus:ring-emerald-900/20 focus:border-emerald-500 outline-none transition-all text-slate-800 dark:text-slate-100 font-bold text-xl placeholder:text-slate-300"
+                                    />
+                                    <button
+                                        onClick={(e) => checkItem(e, pix, 'pix')}
+                                        disabled={loading || !pix}
+                                        className="lg:w-72 h-20 bg-emerald-600 text-white font-black rounded-3xl hover:bg-emerald-700 transition-all shadow-2xl shadow-emerald-200 dark:shadow-none disabled:opacity-50 text-xl"
+                                    >
+                                        Verificar PIX
+                                    </button>
+                                </div>
+                            </div>
+                        ) : activeTab === 'phone' ? (
+                            <div className="space-y-8">
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-3">
+                                    <div className="w-2 h-6 bg-blue-500 rounded-full"></div>
+                                    Análise de Número de Telefone
+                                </h3>
+                                <div className="flex flex-col lg:flex-row gap-4">
+                                    <input
+                                        type="tel"
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
+                                        placeholder="(11) 99999-9999"
+                                        className="flex-1 h-20 px-8 bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-3xl focus:ring-8 focus:ring-blue-100 dark:focus:ring-blue-900/20 focus:border-blue-500 outline-none transition-all text-slate-800 dark:text-slate-100 font-bold text-xl placeholder:text-slate-300"
+                                    />
+                                    <button
+                                        onClick={(e) => checkItem(e, phone, 'phone')}
+                                        disabled={loading || !phone}
+                                        className="lg:w-72 h-20 bg-blue-600 text-white font-black rounded-3xl hover:bg-blue-700 transition-all shadow-2xl shadow-blue-200 dark:shadow-none disabled:opacity-50 text-xl"
+                                    >
+                                        Analisar Número
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-8">
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-3">
+                                    <div className="w-2 h-6 bg-indigo-500 rounded-full"></div>
+                                    Expansor de Links Suspeitos
+                                </h3>
+                                <div className="flex flex-col lg:flex-row gap-4">
+                                    <input
+                                        type="url"
+                                        value={url}
+                                        onChange={(e) => setUrl(e.target.value)}
+                                        placeholder="https://bit.ly/exemplo-suspeito"
+                                        className="flex-1 h-20 px-8 bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-3xl focus:ring-8 focus:ring-indigo-100 dark:focus:ring-indigo-900/20 focus:border-indigo-500 outline-none transition-all text-slate-800 dark:text-slate-100 font-bold text-xl placeholder:text-slate-300"
+                                    />
+                                    <button
+                                        onClick={expandUrl}
+                                        disabled={loading || !url}
+                                        className="lg:w-72 h-20 bg-indigo-600 text-white font-black rounded-3xl hover:bg-indigo-700 transition-all shadow-2xl shadow-indigo-200 dark:shadow-none disabled:opacity-50 text-xl"
+                                    >
+                                        Expandir e Analisar
+                                    </button>
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>
 
-                {/* Result Store */}
                 {result && activeTab === 'store' && (
                     <div className="md:col-span-2 animate-slide-up">
                         <div className="glass-card rounded-[3rem] border border-white dark:border-slate-800 shadow-2xl overflow-hidden relative">
@@ -289,7 +441,6 @@ export default function StoreChecker() {
                     </div>
                 )}
 
-                {/* Result CNPJ */}
                 {cnpjResult && activeTab === 'cnpj' && (
                     <div className="md:col-span-2 animate-slide-up">
                         <div className="glass-card rounded-[3rem] border border-white dark:border-slate-800 shadow-2xl p-10 relative overflow-hidden transition-all duration-300">
@@ -362,9 +513,58 @@ export default function StoreChecker() {
                         </div>
                     </div>
                 )}
+
+                {genericResult && (activeTab === 'pix' || activeTab === 'phone') && (
+                    <div className="md:col-span-2 animate-slide-up">
+                        <div className="glass-card rounded-[3rem] border border-white dark:border-slate-800 shadow-2xl overflow-hidden relative">
+                            <div className={`h-4 w-full ${genericResult.score > 60 ? 'bg-red-500' : genericResult.score > 30 ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
+
+                            <div className="p-10 flex flex-col lg:flex-row gap-12">
+                                <div className="flex flex-col items-center justify-center space-y-4">
+                                    <div className={`w-48 h-48 rounded-[2.5rem] flex flex-col items-center justify-center border-4 shadow-2xl relative
+                                        ${genericResult.score > 60 ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400' :
+                                            genericResult.score > 30 ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/30 text-amber-600 dark:text-amber-400' :
+                                                'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/30 text-emerald-600 dark:text-emerald-400'}
+                                    `}>
+                                        <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Risco</p>
+                                        <p className="text-8xl font-display font-black leading-none">{genericResult.score}</p>
+                                        <p className="text-xs font-bold mt-2 uppercase tracking-tighter">{genericResult.status}</p>
+                                    </div>
+                                    {genericResult.reportedTimes > 0 && (
+                                        <div className="px-4 py-2 bg-red-100 text-red-700 rounded-xl text-[10px] font-black uppercase tracking-widest animate-pulse">
+                                            Reportado {genericResult.reportedTimes}x pela comunidade
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex-1 space-y-10">
+                                    <div>
+                                        <h4 className="text-3xl font-display font-black text-slate-900 dark:text-white mb-2 break-all">
+                                            {activeTab === 'pix' ? pix : phone}
+                                        </h4>
+                                        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Identidade Verificada por IA</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {genericResult.signals.map((signal, idx) => (
+                                            <div key={idx} className="flex gap-4 items-center bg-slate-50/50 dark:bg-slate-800/10 border border-slate-100 dark:border-slate-800 p-5 rounded-2xl">
+                                                <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-tight">{signal}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="p-8 bg-slate-900 dark:bg-white rounded-[2rem] text-white dark:text-slate-900">
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest mb-3 opacity-60">Conselho de Segurança</h4>
+                                        <p className="text-xl font-bold leading-relaxed">{genericResult.recommendation}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {/* Modal Premium */}
             {showPremiumModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
                     <div className="bg-white rounded-[2.5rem] max-w-lg w-full p-8 md:p-10 shadow-2xl relative overflow-hidden animate-slide-up">
@@ -388,3 +588,191 @@ export default function StoreChecker() {
         </div>
     );
 }
+// CÓDIGO PARA O ARQUIVO: backend/server.js
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { createClient } = require('@supabase/supabase-js');
+const Stripe = require('stripe');
+const OpenAI = require('openai');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
+
+dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-shieldcheck-key-2026';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+const stripe = Stripe(STRIPE_SECRET_KEY);
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
+
+const upload = multer({
+    dest: 'uploads/',
+    limits: { fileSize: 25 * 1024 * 1024 }
+});
+
+if (!fs.existsSync('uploads/')) {
+    fs.mkdirSync('uploads/');
+}
+
+const app = express();
+app.use(cors());
+
+app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+    const signature = req.headers['stripe-signature'];
+    let event;
+
+    try {
+        if (STRIPE_WEBHOOK_SECRET) {
+            event = stripe.webhooks.constructEvent(req.body, signature, STRIPE_WEBHOOK_SECRET);
+        } else {
+            event = JSON.parse(req.body.toString());
+        }
+    } catch (err) {
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    if (event.type === 'checkout.session.completed') {
+        const session = event.data.object;
+        const userId = session.client_reference_id;
+        if (userId) {
+            await supabase.from('users').update({ plan: 'PREMIUM' }).eq('id', userId);
+        }
+    }
+    res.json({ received: true });
+});
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'Acesso negado.' });
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.status(403).json({ error: 'Token inválido.' });
+        req.user = user;
+        next();
+    });
+};
+
+const checkQuota = async (req, res, next) => {
+    const userId = req.user ? req.user.id : null;
+    const isPremium = req.user ? req.user.plan === 'PREMIUM' : false;
+    if (isPremium) return next();
+    const today = new Date().toISOString().split('T')[0];
+    try {
+        const { count } = await supabase
+            .from('reports')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .gte('timestamp', today);
+        if (count >= 3) return res.status(429).json({ error: 'Cota diária atingida' });
+        next();
+    } catch (err) { next(); }
+};
+
+const optionalAuthenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return next();
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (!err) req.user = user;
+        next();
+    });
+};
+
+/* --- AUTH --- */
+app.post('/api/register', async (req, res) => {
+    const { name, email, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const { data: user, error } = await supabase.from('users').insert([{ name, email, password_hash: hashedPassword }]).select().single();
+    if (error) return res.status(400).json({ error: 'Erro ao cadastrar.' });
+    const token = jwt.sign({ id: user.id, email, name, plan: 'FREE' }, JWT_SECRET);
+    res.json({ token, user: { ...user, plan: 'FREE' } });
+});
+
+app.post('/api/login', async (req, res) => {
+    const { email, password } = req.body;
+    const { data: user } = await supabase.from('users').select('*').eq('email', email).single();
+    if (!user) return res.status(400).json({ error: 'Não encontrado.' });
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) return res.status(400).json({ error: 'Senha incorreta.' });
+    const token = jwt.sign({ id: user.id, email: user.email, name: user.name, plan: user.plan }, JWT_SECRET);
+    res.json({ token, user });
+});
+
+app.get('/api/me', authenticateToken, async (req, res) => {
+    const { data: user } = await supabase.from('users').select('*').eq('id', req.user.id).single();
+    res.json(user);
+});
+
+/* --- CORE LOGIC --- */
+const analyzeContent = async (text, type) => {
+    const prompt = `Analise este conteúdo de segurança (${type}): "${text}". Retorne JSON: {score, status, signals, recommendation}`;
+    const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" }
+    });
+    return JSON.parse(response.choices[0].message.content);
+};
+
+const analyzeStore = async (url) => {
+    const prompt = `Analise o e-commerce: "${url}". Retorne JSON: {trustScore, registrationAge, riskFactors, recommendation}`;
+    const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" }
+    });
+    return JSON.parse(response.choices[0].message.content);
+};
+
+app.post('/api/analyze', optionalAuthenticateToken, checkQuota, async (req, res) => {
+    const { content, type } = req.body;
+    const result = await analyzeContent(content, type);
+    await supabase.from('reports').insert([{ user_id: req.user?.id, content, type: type || 'text', risk_score: result.score }]);
+    res.json(result);
+});
+
+app.get('/api/check-store', optionalAuthenticateToken, async (req, res) => {
+    const result = await analyzeStore(req.query.url);
+    res.json(result);
+});
+
+app.get('/api/check-item', optionalAuthenticateToken, async (req, res) => {
+    const { value, type } = req.query;
+    const { data: pattern } = await supabase.from('scam_patterns').select('report_count').eq('pattern_text', value.trim()).maybeSingle();
+    const count = pattern ? pattern.report_count : 0;
+    const prompt = `Analise o item ${type}: "${value}". Reportado ${count} vezes. Retorne JSON: {score, status, recommendation, signals}`;
+    const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" }
+    });
+    const result = JSON.parse(response.choices[0].message.content);
+    res.json({ ...result, reportedTimes: count });
+});
+
+app.get('/api/expand-url', optionalAuthenticateToken, async (req, res) => {
+    try {
+        const response = await fetch(req.query.url, { method: 'HEAD', redirect: 'follow' });
+        const analysis = await analyzeStore(response.url);
+        res.json({ expandedUrl: response.url, analysis });
+    } catch (e) { res.status(500).json({ error: 'Erro ao expandir.' }); }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Rodando na porta ${PORT}`));
+
+
